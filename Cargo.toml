@@ -1,0 +1,17 @@
+[package]
+name = "downloads-fuse"
+version = "0.1.0"
+edition = "2021"
+description = "Live categorized FUSE views of a Downloads directory"
+license = "MIT"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+clap = { version = "4.5", features = ["derive"] }
+fuser = { version = "0.16", default-features = false, features = ["abi-7-31"] }
+libc = "0.2"
+
+[profile.release]
+lto = "thin"
+strip = true
+
