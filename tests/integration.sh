@@ -32,10 +32,14 @@ trap cleanup EXIT
 
 printf 'today\n' >"$source_dir/today.txt"
 printf 'pdf\n' >"$source_dir/report.PDF"
+printf 'image\n' >"$source_dir/photo.JPG"
+printf 'archive\n' >"$source_dir/bundle.zst"
+printf 'yesterday\n' >"$source_dir/yesterday.txt"
 printf 'nested\n' >"$source_dir/project/nested.txt"
 printf 'delete recursively\n' >"$source_dir/doomed/file.txt"
 printf 'old\n' >"$source_dir/old.txt"
 touch -d '40 days ago' "$source_dir/old.txt"
+touch -d 'yesterday 12:00' "$source_dir/yesterday.txt"
 ln -s /etc/passwd "$source_dir/project/outside-link"
 
 "$binary" --source "$source_dir" --mount "$mount_dir" >"$work/mount.log" 2>&1 &
@@ -51,12 +55,26 @@ done
 mountpoint -q "$mount_dir"
 
 test -f "$mount_dir/today/today.txt"
+test -f "$mount_dir/yesterday/yesterday.txt"
+test -f "$mount_dir/week/yesterday.txt"
+test -f "$mount_dir/month/yesterday.txt"
 test -f "$mount_dir/pdf/report.PDF"
+test -f "$mount_dir/images/photo.JPG"
+test -f "$mount_dir/zip/bundle.zst"
 test ! -e "$mount_dir/month/old.txt"
 cmp "$source_dir/project/nested.txt" "$mount_dir/dirs/project/nested.txt"
 
 printf 'live\n' >"$source_dir/live.pdf"
 test -f "$mount_dir/pdf/live.pdf"
+if touch "$mount_dir/pdf/blocked.pdf" 2>/dev/null; then
+  echo "category view unexpectedly allowed file creation"
+  exit 1
+fi
+if printf 'changed\n' 2>/dev/null >"$mount_dir/pdf/live.pdf"; then
+  echo "category view unexpectedly allowed file modification"
+  exit 1
+fi
+grep -qx live "$source_dir/live.pdf"
 
 rm "$mount_dir/today/today.txt"
 test ! -e "$source_dir/today.txt"

@@ -6,7 +6,7 @@
 - **`fuser` 0.16 with the `abi-7-31` feature:** implements the Linux FUSE protocol in-process and targets the FUSE 3.10-era ABI while avoiding a runtime dependency on `libfuse`.
 - **`libc` 0.2:** supplies Linux error numbers, open flags, and filesystem constants used by FUSE callbacks.
 - **`chrono` 0.4 with only `clock` and `std`:** computes local calendar-day boundaries for `today` and `yesterday`; rolling windows use `SystemTime` durations.
-- **`clap` 4.5 with derive support:** provides a small, validated CLI for source, mount point, and foreground operation.
+- **`clap` 4 with derive support:** provides a small, validated CLI for source and mount point selection.
 - **Nix flakes:** provide the Rust build environment plus FUSE 3 and test utilities reproducibly.
 
 ## Filesystem architecture
@@ -17,7 +17,8 @@
 - File descriptors are opened read-only with `O_NOFOLLOW`; mutation callbacks operate on validated parent/name pairs relative to the canonical source root.
 - Category roots reject creation, writes, and rename. Deletion is allowed and affects the backing entry. The source root itself is never represented as a deletable node.
 - Renames inside the mounted filesystem are not supported. Moving out relies on the normal cross-filesystem `EXDEV` path: read/copy through FUSE, then `unlink` or `rmdir` through FUSE only after the destination copy succeeds.
-- Symlinks inside `dirs` are visible and readable with `readlink`, but are never followed by lookup traversal. This prevents mutation through a link from escaping the source tree.
+- Symlinks inside `dirs` are visible. Relative links are preserved only when their resolved target stays inside the source. Absolute, broken, and escaping links are exposed as self-loops; this keeps them listable, copyable as links, and deletable without allowing path traversal outside the source tree.
+- Virtual directories use mode `0755` so kernel permission checks allow `unlink` and `rmdir` callbacks to run. Creation and modification remain disabled at the FUSE operation layer.
 
 ## Testing strategy
 
