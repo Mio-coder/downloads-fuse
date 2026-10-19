@@ -1,6 +1,6 @@
 # downloads-fuse
 
-A vibe-coded Linux FUSE filesystem that provides live, categorized views of a Downloads directory. Files are never copied: reads and deletions operate on the originals.
+`downloads-fuse` is a Linux FUSE filesystem that presents files from `~/Downloads` through virtual category directories mounted at `~/dl`. Top-level files are grouped by modification date or file extension, while subdirectories and their contents are available under `dirs/`.
 
 ## Views
 
