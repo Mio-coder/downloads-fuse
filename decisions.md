@@ -8,6 +8,7 @@
 - **`chrono` 0.4 with only `clock` and `std`:** computes local calendar-day boundaries for `today` and `yesterday`; rolling windows use `SystemTime` durations.
 - **`clap` 4 with derive support:** provides a small, validated CLI for source and mount point selection.
 - **Nix flakes:** provide the Rust build environment plus FUSE 3 and test utilities reproducibly.
+- The packaged launcher appends Nix's FUSE 3 tools to `PATH` instead of prepending them, so a host-provided privileged `fusermount3` wrapper remains preferred. The Nix binary is retained as a fallback on systems where unprivileged mounting does not require a privileged helper.
 
 ## Filesystem architecture
 

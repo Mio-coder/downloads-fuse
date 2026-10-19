@@ -28,7 +28,7 @@
             nativeBuildInputs = [ pkgs.makeWrapper ];
             postInstall = ''
               wrapProgram $out/bin/downloads-fuse \
-                --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.fuse3 ]}
+                --suffix PATH : ${pkgs.lib.makeBinPath [ pkgs.fuse3 ]}
             '';
 
             meta = {
