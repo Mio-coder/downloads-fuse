@@ -1,19 +1,24 @@
 # downloads-fuse
 
-`downloads-fuse` mounts live, categorized views of a Downloads directory. Files are never copied: reads and deletions operate on the originals.
+A vibe-coded Linux FUSE filesystem that provides live, categorized views of a Downloads directory. Files are never copied: reads and deletions operate on the originals.
 
 ## Views
 
-| Path | Contents |
-| --- | --- |
+| Path                   | Contents                                                          |
+| ---------------------- | ----------------------------------------------------------------- |
 | `today/`, `yesterday/` | Top-level regular files from the corresponding local calendar day |
-| `week/`, `month/` | Top-level regular files modified in the last 7 or 30 rolling days |
-| `pdf/` | Top-level `.pdf` files |
-| `images/` | Top-level images and videos listed in `design.md` |
-| `zip/` | Top-level archives listed in `design.md` |
-| `dirs/` | Top-level directories and their full recursive contents |
+| `week/`, `month/`      | Top-level regular files modified in the last 7 or 30 rolling days |
+| `pdf/`                 | Top-level `.pdf` files                                            |
+| `images/`              | Top-level images and videos listed in `design.md`                 |
+| `zip/`                 | Top-level archives listed in `design.md`                          |
+| `dirs/`                | Top-level directories and their full recursive contents           |
 
 Extension matching is case-insensitive. Views update on every lookup and listing, so changes made directly in the source appear without remounting.
+
+## Requirements
+
+- Linux with FUSE 3 and an accessible `/dev/fuse` device
+- Nix with flakes enabled, or a stable Rust toolchain for manual builds
 
 ## Build
 
@@ -39,11 +44,18 @@ cargo build --release
 
 ## Mount and unmount
 
-Create the default mount point once, then run the filesystem in the foreground:
+Create the default mount point once, then start the filesystem:
 
 ```bash
 mkdir -p ~/dl
 nix run
+```
+
+`nix run` stays in the foreground and must remain running. In another terminal, verify the mount:
+
+```bash
+ls ~/dl
+ls ~/dl/zip
 ```
 
 The defaults are `~/Downloads` and `~/dl`. Override either path when testing:
@@ -52,13 +64,13 @@ The defaults are `~/Downloads` and `~/dl`. Override either path when testing:
 nix run . -- --source /absolute/source --mount /absolute/mount-point
 ```
 
-In another terminal, unmount with:
+To stop it, press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal running `nix run`. Alternatively, unmount it from another terminal:
 
 ```bash
 fusermount3 -u ~/dl
 ```
 
-The source and mount point must already exist. Both are canonicalized at startup, and the mount point is rejected if it is inside the source.
+The source and mount point must already exist. Both paths are resolved at startup, and the mount point is rejected if it is inside the source directory.
 
 ## Supported operations and limits
 
@@ -79,4 +91,3 @@ nix develop --command tests/integration.sh target/debug/downloads-fuse
 ```
 
 It prints `SKIP` and exits successfully when `/dev/fuse`, `fusermount3`, or `mountpoint` is unavailable.
-
