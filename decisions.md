@@ -1,4 +1,5 @@
 # Implementation decisions
+This file contains decisions made by ai agents
 
 ## Stack
 

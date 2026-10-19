@@ -1,6 +1,6 @@
 # downloads-fuse
 
-`downloads-fuse` is a Linux FUSE filesystem that presents files from `~/Downloads` through virtual category directories mounted at `~/dl`. Top-level files are grouped by modification date or file extension, while subdirectories and their contents are available under `dirs/`.
+`downloads-fuse` is a Linux FUSE filesystem that presents files from `~/Downloads` through virtual category directories mounted at `~/dl`.
 
 ## Views
 
@@ -9,8 +9,8 @@
 | `today/`, `yesterday/` | Top-level regular files from the corresponding local calendar day |
 | `week/`, `month/`      | Top-level regular files modified in the last 7 or 30 rolling days |
 | `pdf/`                 | Top-level `.pdf` files                                            |
-| `images/`              | Top-level images and videos listed in `design.md`                 |
-| `zip/`                 | Top-level archives listed in `design.md`                          |
+| `images/`              | Top-level images and videos                                       |
+| `zip/`                 | Top-level archives listed                                         |
 | `dirs/`                | Top-level directories and their full recursive contents           |
 
 Extension matching is case-insensitive. Views update on every lookup and listing, so changes made directly in the source appear without remounting.
@@ -18,7 +18,6 @@ Extension matching is case-insensitive. Views update on every lookup and listing
 ## Requirements
 
 - Linux with FUSE 3 and an accessible `/dev/fuse` device
-- Nix with flakes enabled, or a stable Rust toolchain for manual builds
 
 ## Build
 
