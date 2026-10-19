@@ -54,6 +54,11 @@ for _ in {1..50}; do
 done
 mountpoint -q "$mount_dir"
 
+# Exercise readdir for every virtual root, not only direct path lookup.
+for view in today yesterday week month pdf images zip dirs; do
+  find "$mount_dir/$view" -mindepth 1 -maxdepth 1 -print >/dev/null
+done
+
 test -f "$mount_dir/today/today.txt"
 test -f "$mount_dir/yesterday/yesterday.txt"
 test -f "$mount_dir/week/yesterday.txt"

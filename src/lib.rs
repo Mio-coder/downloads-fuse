@@ -193,7 +193,11 @@ impl DownloadsFs {
             (view, relative)
         };
 
-        let directory = self.path_for(&base)?;
+        let directory = if base.as_os_str().is_empty() {
+            self.source.clone()
+        } else {
+            self.path_for(&base)?
+        };
         let now = SystemTime::now();
         let mut entries = Vec::new();
         for item in fs::read_dir(directory).map_err(errno)? {
@@ -613,10 +617,13 @@ mod tests {
     use std::fs::OpenOptions;
     use std::time::Duration;
 
+    static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
     fn temp_file(name: &str) -> (PathBuf, Metadata) {
         let dir = std::env::temp_dir().join(format!(
-            "downloads-fuse-test-{}-{}",
+            "downloads-fuse-test-{}-{}-{}",
             std::process::id(),
+            TEMP_COUNTER.fetch_add(1, Ordering::Relaxed),
             name
         ));
         let _ = fs::remove_dir_all(&dir);
