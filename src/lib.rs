@@ -140,21 +140,10 @@ impl DownloadsFs {
         let Node::Entry { view, relative } = self.node(ino).ok_or(ENOENT)?;
         let path = self.path_for(&relative)?;
         let metadata = fs::symlink_metadata(&path).map_err(errno)?;
-        if !self.visible(view, &relative, &metadata, SystemTime::now()) {
+        if !entry_visible(view, &relative, &metadata, SystemTime::now()) {
             return Err(ENOENT);
         }
         Ok((view, relative, path, metadata))
-    }
-
-    fn visible(&self, view: View, relative: &Path, metadata: &Metadata, now: SystemTime) -> bool {
-        if !entry_visible(view, relative, metadata, now) {
-            return false;
-        }
-        if metadata.file_type().is_symlink() {
-            return fs::canonicalize(self.source.join(relative))
-                .is_ok_and(|target| target.starts_with(&self.source));
-        }
-        true
     }
 
     fn child(&self, parent: u64, name: &OsStr) -> Result<(View, PathBuf), i32> {
@@ -221,7 +210,7 @@ impl DownloadsFs {
                 Ok(metadata) => metadata,
                 Err(_) => continue,
             };
-            if !self.visible(view, &relative, &metadata, now) {
+            if !entry_visible(view, &relative, &metadata, now) {
                 continue;
             }
             let ino = self.inode_for(view, relative)?;
@@ -252,7 +241,7 @@ impl Filesystem for DownloadsFs {
             let (view, relative) = self.child(parent, name)?;
             let path = self.path_for(&relative)?;
             let metadata = fs::symlink_metadata(path).map_err(errno)?;
-            if !self.visible(view, &relative, &metadata, SystemTime::now()) {
+            if !entry_visible(view, &relative, &metadata, SystemTime::now()) {
                 return Err(ENOENT);
             }
             let ino = self.inode_for(view, relative)?;
@@ -276,11 +265,22 @@ impl Filesystem for DownloadsFs {
     }
 
     fn readlink(&mut self, _req: &Request<'_>, ino: u64, reply: ReplyData) {
-        match self.entry(ino).and_then(|(_, _, path, metadata)| {
+        match self.entry(ino).and_then(|(_, relative, path, metadata)| {
             if !metadata.file_type().is_symlink() {
                 return Err(EINVAL);
             }
-            fs::read_link(path).map_err(errno)
+            let target = fs::read_link(&path).map_err(errno)?;
+            if target.is_relative()
+                && fs::canonicalize(&path).is_ok_and(|resolved| resolved.starts_with(&self.source))
+            {
+                Ok(target)
+            } else {
+                // Returning the link's own name creates a harmless ELOOP. This
+                // keeps unsafe absolute, escaping, and broken links visible for
+                // listing and deletion without letting path traversal leave the
+                // virtual source tree.
+                Ok(PathBuf::from(relative.file_name().ok_or(EINVAL)?))
+            }
         }) {
             Ok(target) => reply.data(target.as_os_str().as_bytes()),
             Err(error) => reply.error(error),
@@ -397,7 +397,7 @@ impl Filesystem for DownloadsFs {
         let result = self.child(parent, name).and_then(|(view, relative)| {
             let path = self.path_for(&relative)?;
             let metadata = fs::symlink_metadata(&path).map_err(errno)?;
-            if !self.visible(view, &relative, &metadata, SystemTime::now()) {
+            if !entry_visible(view, &relative, &metadata, SystemTime::now()) {
                 return Err(ENOENT);
             }
             if metadata.is_dir() {
@@ -595,7 +595,9 @@ fn virtual_dir_attr(ino: u64) -> FileAttr {
         ctime: UNIX_EPOCH,
         crtime: UNIX_EPOCH,
         kind: FileType::Directory,
-        perm: 0o555,
+        // Parent write permission is required for unlink/rmdir to reach FUSE.
+        // Creation and modification remain denied by their callbacks.
+        perm: 0o755,
         nlink: 2,
         uid: unsafe { libc::geteuid() },
         gid: unsafe { libc::getegid() },
